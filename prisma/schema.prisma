@@ -1,0 +1,260 @@
+generator client {
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum ActivityType {
+  WORKSPACE_CREATED
+  PROJECT_CREATED
+  TASK_CREATED
+  TASK_MOVED
+  COMMENT_ADDED
+  FILE_UPLOADED
+  MEMBER_INVITED
+  MEMBER_ROLE_UPDATED
+  MEMBER_REMOVED
+  TASK_REORDERED
+  TASK_UPDATED
+  NOTIFICATION_SENT
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  image     String?
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships WorkspaceMember[]
+  accounts    Account[]
+  sessions    Session[]
+  comments    TaskComment[]
+  activities  Activity[]
+  tasks       Task[] @relation("TaskAssignee")
+  ownedWorkspaces Workspace[] @relation("WorkspaceOwner")
+  invitesSent WorkspaceInvite[] @relation("InviteSender")
+  notifications Notification[]
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  owner     User              @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+  members   WorkspaceMember[]
+  projects  Project[]
+  activity  Activity[]
+  invites   WorkspaceInvite[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+
+  userId      String
+  workspaceId String
+
+  user      User      @relation(fields: [userId], references: [id])
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+
+  @@unique([userId, workspaceId])
+  @@index([workspaceId])
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  name        String
+  description String?
+  status      ProjectStatus @default(ACTIVE)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspaceId String
+  workspace   Workspace     @relation(fields: [workspaceId], references: [id])
+
+  tasks    Task[]
+  activity Activity[]
+
+  @@index([workspaceId])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  title       String
+  description String?
+  status      TaskStatus @default(TODO)
+  priority    Int        @default(2)
+  order       Int        @default(0)
+  dueDate     DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id])
+
+  assigneeId  String?
+  assignee    User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  comments    TaskComment[]
+  attachments Attachment[]
+  history     TaskStatusHistory[]
+
+  @@index([projectId])
+  @@index([status])
+  @@index([projectId, status, order])
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+
+  taskId   String
+  task     Task   @relation(fields: [taskId], references: [id])
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  @@index([taskId])
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  filename  String
+  url       String
+  size      Int
+  createdAt DateTime @default(now())
+
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+
+  @@index([taskId])
+}
+
+model WorkspaceInvite {
+  id          String   @id @default(cuid())
+  email       String
+  role        Role     @default(MEMBER)
+  createdAt   DateTime @default(now())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  senderId    String?
+  sender      User?    @relation("InviteSender", fields: [senderId], references: [id])
+
+  acceptedAt  DateTime?
+
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String?
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+model TaskStatusHistory {
+  id        String   @id @default(cuid())
+  from      TaskStatus
+  to        TaskStatus
+  createdAt DateTime @default(now())
+
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id])
+
+  @@index([taskId, createdAt])
+}
+
+model Activity {
+  id          String       @id @default(cuid())
+  type        ActivityType
+  meta        Json
+  createdAt   DateTime     @default(now())
+
+  workspaceId String
+  workspace   Workspace    @relation(fields: [workspaceId], references: [id])
+
+  actorId     String?
+  actor       User?        @relation(fields: [actorId], references: [id])
+
+  projectId   String?
+  project     Project?     @relation(fields: [projectId], references: [id])
+
+  @@index([workspaceId])
+  @@index([workspaceId, createdAt])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?
+  access_token       String?
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

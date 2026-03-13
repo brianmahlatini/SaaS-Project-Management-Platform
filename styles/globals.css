@@ -1,0 +1,52 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #0f1419;
+  --muted: #4c5c69;
+  --border: #e2e8f0;
+}
+
+.dark {
+  color-scheme: dark;
+  --bg: #0b1117;
+  --card: #141b22;
+  --text: #f5f7fb;
+  --muted: #9aa7b2;
+  --border: #1f2a36;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-space), ui-sans-serif, system-ui, sans-serif;
+}
+
+.page-gradient {
+  background: radial-gradient(circle at top, #f5f2ff 0%, #f8fafc 45%, #eef2ff 100%);
+}
+
+.dark .page-gradient {
+  background: radial-gradient(circle at top, #1a2130 0%, #0b1117 50%, #0a0f14 100%);
+}
+
+.card {
+  @apply rounded-2xl border shadow-lift;
+  background: var(--card);
+  border-color: var(--border);
+}
+
+.badge {
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium;
+  background: #e7dcff;
+  color: #5f2dc2;
+}
+
+.dark .badge {
+  background: rgba(126, 63, 242, 0.2);
+  color: #cdb2ff;
+}

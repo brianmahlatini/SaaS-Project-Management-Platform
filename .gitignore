@@ -1,0 +1,7 @@
+﻿/node_modules
+/.next
+/.env
+/prisma/dev.db
+
+# Build artifacts
+/tsconfig.tsbuildinfo

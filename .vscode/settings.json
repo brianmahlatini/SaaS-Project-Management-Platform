@@ -1,0 +1,15 @@
+﻿{
+  "files.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/public/uploads": true
+  },
+  "search.exclude": {
+    "**/.next": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/public/uploads": true
+  },
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true
+}
